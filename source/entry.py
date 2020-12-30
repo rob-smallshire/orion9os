@@ -64,20 +64,24 @@ asm .END    (   JMP,    {asm.RESET},    "Jump back to the bottom"       )
 asm         (   CALL,   print                                           )
 
 
+asm .SWI    (   RTI,                    "Return from interrupt")
+asm .SWI2   (   RTI,                    "Return from interrupt")
+asm .SWI3   (   RTI,                    "Return from interrupt")
+asm .FIRQ   (   RTI,                    "Return from interrupt")
 asm .IRQ    (   RTI,                    "Return from interrupt")
-
+asm .NMI    (   RTI,                    "Return from interrupt")
 asm .TRAP   (   JMP,    {asm.RESET},    "TODO: Check for division by zero or bad instruction")
 
 
 # Vector table at top of memory
 asm         (   ORG,    0xFFF0,         "Bottom of the top 16 K ROM"    )
 asm         (   FDB,   (asm.TRAP,   # TRAP (6309)
-                        0xC000,     # SWI3
-                        0xC000,     # SWI2
-                        0xC000,     # /FIRQ
+                        asm.SWI3,   # SWI3
+                        asm.SWI2,   # SWI2
+                        asm.FIRQ,   # /FIRQ
                         asm.IRQ,    # /IRQ
-                        0xC000,     # SWI
-                        0xC000,     # /NMI
+                        asm.SWI,    # SWI
+                        asm.NMI,    # /NMI
                         asm.RESET,  # /RESET
                         ))
 
