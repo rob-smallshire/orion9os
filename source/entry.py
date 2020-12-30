@@ -60,7 +60,7 @@ asm         (   BEQ,    asm.WAITR,      "Branch if flag not set"        )
 asm         (   LDA,    ord("h"),       "Load 'H' into A"               )
 asm         (   STA,    {aciadr},       "Transmit character"            )
 asm         (   JMP,    {asm.SEND},     "Send another character"        )
-asm .END    (   JMP,    {asm.BEGIN},    "Jump back to the bottom"       )
+asm .END    (   JMP,    {asm.RESET},    "Jump back to the bottom"       )
 asm         (   CALL,   print                                           )
 
 
