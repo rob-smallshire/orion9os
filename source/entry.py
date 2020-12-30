@@ -40,7 +40,6 @@ aciadr = 0xA001
 
 asm         (   ORG,    0xC000,         "Bottom of the top 16 K ROM"    )
 
-asm .RESET      (   LDMD,   0b00000001,     "Enter native 6309 mode"    )
 asm .ACIA_RESET (   LDA,    0b00000011,     "Master reset ACIA"         )
 asm             (   STA,    {aciacr}                                    )
 asm             (   RTS                                                 )
@@ -48,8 +47,8 @@ asm             (   RTS                                                 )
 asm .ACIA_MODE  (   LDA,    0b00001010,     "ACIA Operating mode -- 7e1 - div 64"   )
 asm             (   STA,    {aciacr}                                                )
 asm             (   RTS                                                             )
-asm         (   NOP,                    "Do nothing"                    )
-asm .BEGIN  (   NOP,                    "Do nothing"                    )
+
+asm .RESET  (   LDMD,   0b00000001,     "Enter native 6309 mode"    )
 asm         (   LDS,    system_stack_base, "Setup system stack"         )
 asm         (   NOP,                    "Do nothing"                    )
 asm         (   JSR,    {asm.ACIA_RESET}, "Master reset ACIA"             )
