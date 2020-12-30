@@ -57,3 +57,25 @@ asm         (   FDB,   (0xC000,     # Reserved
                         0xC000)     # /RESET
             )
 
+# Notes
+
+# Point /IRQ interrupt handling vector at .IRQ
+
+# In .RESET setup
+# - An input buffer in page 0x03.
+#    Store the buffer pointers in page 0
+
+# - A output buffer in page 0x04.
+#    Store the buffer pointers in page 0
+
+# Configure the 6850
+
+# .MAIN
+#
+# If the input buffer is not empty
+#   Copy data from the input buffer into the output buffer
+
+
+# .IRQ
+
+#
