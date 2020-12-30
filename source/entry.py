@@ -72,7 +72,7 @@ asm .TRAP   (   JMP,    {asm.RESET},    "TODO: Check for division by zero or bad
 
 # Vector table at top of memory
 asm         (   ORG,    0xFFF0,         "Bottom of the top 16 K ROM"    )
-asm         (   FDB,   (0xC000,     # TRAP (6309)
+asm         (   FDB,   (asm.TRAP,   # TRAP (6309)
                         0xC000,     # SWI3
                         0xC000,     # SWI2
                         0xC000,     # /FIRQ
