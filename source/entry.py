@@ -1,8 +1,9 @@
 from asm68.asmdsl import AsmDsl
 from asm68.mnemonics import (
     FDB, ORG, NOP, JMP, LDA, STA, BITA, BEQ, CALL, LDS, JSR, RTS, RTI,
-    LDMD
-)
+    LDMD,
+    FCB, LDX, LDB, STB, CLR, ORCC, ANDCC, LDE, LDF, STE, STF, INCE, INCF, TFR, CMPR, DECF)
+from asm68.registers import A, X, E, F, W, Y
 
 asm = AsmDsl()
 
@@ -24,13 +25,34 @@ asm = AsmDsl()
 # to a value one higher than the largest address in the Stack area (e.g., initializing the Stack
 # Pointer to 0100 16 means that the largest address in the Stack area will be 00FF ).
 
+def word(hi, lo):
+    return (hi << 8) | lo
+
 system_stack_page = 0x01
 system_stack_size = 0xFF
 system_stack_base = (system_stack_page << 8) + system_stack_size + 1
 
 # 0x02__ OS workspace
-os_work_page = 0x20
-acia_control_register_copy = (os_work_page << 8) + 0x50
+os_work_page = 0x02
+
+def os_workspace(lo):
+    return word(os_work_page, lo)
+
+acia_control_register_copy = os_workspace(0x50)
+
+buffer_input_offset_table_base = os_workspace(0x40)
+buffer_output_offset_table_base = os_workspace(0x48)
+
+serial_rx_buffer_number = 0
+serial_rx_buffer_page = 0x30
+serial_rx_buffer_input_ptr = os_workspace(0x10)
+serial_rx_buffer_output_ptr = os_workspace(0x11)
+
+
+serial_tx_buffer_number = 1
+serial_tx_buffer_page = 0x40
+serial_tx_buffer_input_ptr = os_workspace(0x12)
+serial_tx_buffer_output_ptr = os_workspace(0x13)
 
 
 aciacr = 0xA000  # 6850 control register
@@ -44,7 +66,7 @@ asm .ACIA_RESET (   LDA,    0b00000011,     "Master reset ACIA"         )
 asm             (   STA,    {aciacr}                                    )
 asm             (   RTS                                                 )
 
-asm .ACIA_MODE  (   LDA,    0b00001010,     "ACIA Operating mode -- 7e1 - div 64"   )
+asm .ACIA_MODE  (   LDA,    0b00001010,     "ACIA Operating mode -- 7e1 - div 64"   ) # Gives 2400 baud with 153600 Hz clock
 asm             (   STA,    {aciacr}                                                )
 asm             (   RTS                                                             )
 
@@ -57,18 +79,19 @@ asm         (   JSR,    {asm.ACIA_MODE},  "Set ACIA mode"                 )
 asm .SEND   (   LDA,    0b00000010,     "Transmitter status flag"       )
 asm .WAITR  (   BITA,   {aciasr},       "Test flag"                     )
 asm         (   BEQ,    asm.WAITR,      "Branch if flag not set"        )
-asm         (   LDA,    ord("h"),       "Load 'H' into A"               )
+asm         (   LDA,    ord("x"),       "Load 'H' into A"               )
 asm         (   STA,    {aciadr},       "Transmit character"            )
 asm         (   JMP,    {asm.SEND},     "Send another character"        )
 asm .END    (   JMP,    {asm.RESET},    "Jump back to the bottom"       )
 asm         (   CALL,   print                                           )
 
 
-asm .SWI    (   RTI,                    "Return from interrupt")
-asm .SWI2   (   RTI,                    "Return from interrupt")
+asm .TRAP   (   JMP,    {asm.BOOT},     "TODO: Check for division by zero or bad instruction")
 asm .SWI3   (   RTI,                    "Return from interrupt")
+asm .SWI2   (   RTI,                    "Return from interrupt")
 asm .FIRQ   (   RTI,                    "Return from interrupt")
 asm .IRQ    (   RTI,                    "Return from interrupt")
+asm .SWI    (   RTI,                    "Return from interrupt")
 asm .NMI    (   RTI,                    "Return from interrupt")
 asm .TRAP   (   JMP,    {asm.RESET},    "TODO: Check for division by zero or bad instruction")
 
