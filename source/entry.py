@@ -167,7 +167,7 @@ asm .FIRQ   (   RTI,                    "Return from interrupt")
 asm .IRQ    (   RTI,                    "Return from interrupt")
 asm .SWI    (   RTI,                    "Return from interrupt")
 asm .NMI    (   RTI,                    "Return from interrupt")
-asm .TRAP   (   JMP,    {asm.RESET},    "TODO: Check for division by zero or bad instruction")
+asm .RESET  (   JMP,    {asm.BOOT},     "Boot!")
 
 
 # Vector table at top of memory
