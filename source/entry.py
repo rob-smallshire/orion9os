@@ -62,6 +62,77 @@ aciadr = 0xA001
 
 asm         (   ORG,    0xC000,         "Bottom of the top 16 K ROM"    )
 
+# This table gives the hi-byte (i.e page number) of each of the 256 byte buffers.
+asm .BUFFER_HI .SERIAL_RX_BUFFER_PAGE ( FCB, (serial_rx_buffer_page,) )
+asm            .SERIAL_TX_BUFFER_PAGE ( FCB, (serial_tx_buffer_page,) )
+
+
+# Reset Buffer. Buffer index in A.
+# Stores zero offset (-127 from the base offset) into the buffer input offset and the buffer output offset
+asm .RESET_BUFFER ( LDX, buffer_input_offset_table_base  )
+asm               ( LDB, 0x80, "Minimum offset is -127"  )
+asm               ( STB, {A:X}                           )
+asm               ( LDX, buffer_output_offset_table_base )
+asm               ( STB, {A:X}                           )
+asm               ( RTS                                  )
+
+
+# Insert byte in buffer.
+#
+# Entry:
+#           Buffer index in A
+#           Byte to be inserted in B
+#
+# Exit:
+#           If buffer is full,
+#                Carry = 1
+#           else
+#                Carry = 0
+#
+# Registers used: A, B, E, F, X, Y, CC
+#
+asm .INS_BUFFER   ( LDX, asm.BUFFER_HI, "Load the base of the buffer page table in X")
+asm               ( LDE, {A:X}, "Load the page of buffer A into E (hi byte of W")
+asm               ( LDF, 0x7F, "Load 0x7F - the midpoint of the buffer int F (lo byte of W)")
+asm               ( TFR, (W, Y), "Transfer W (E, F) to Y" )
+
+asm               ( LDX, buffer_output_offset_table_base            )
+asm               ( LDF, {A:X},  "Load buffer output offset into F" )
+asm               ( LDX, buffer_input_offset_table_base             )
+asm               ( LDE, {A:X},  "Load buffer input offset into E"  )
+asm               ( DECF, "Buffer full occurs when E == F - 1")
+asm               ( CMPR, (E, F), "Compare input and output offsets")
+asm               ( ORCC, 0x01,  "Indicate buffer full")
+asm               ( BEQ,  asm.EXIT_INS_BUFFER, "If E and F are equal, buffer is full" )
+
+asm               ( STB, {E:Y}, "Store the byte in the buffer at offset E" )
+asm               ( INCE,       "Increment the buffer input offset" )
+asm               ( STE, {A:X}, "Store the buffer input offset from E")
+asm               ( ANDCC, 0xFE, "Success - Clear carry")
+asm .EXIT_INS_BUFFER ( RTS )
+
+
+# Remove byte from buffer. Buffer index in A. Byte returned in B.
+asm .REM_BUFFER   ( LDX, asm.BUFFER_HI, "Load the base of the buffer page table in X")
+asm               ( LDE, {A:X}, "Load the page of buffer A into E (hi byte of W")
+asm               ( LDF, 0x7F, "Load 0x7F - the midpoint of the buffer int F (lo byte of W)")
+asm               ( TFR, (W, Y), "Transfer W (E, F) to Y" )
+
+asm               ( LDX, buffer_input_offset_table_base             )
+asm               ( LDE, {A:X},  "Load buffer input offset into E"  )
+asm               ( LDX, buffer_output_offset_table_base            )
+asm               ( LDF, {A:X},  "Load buffer output offset into F" )
+asm               ( CMPR, (E, F), "Buffer empty occurs when E == F" )
+asm               ( ORCC, 0x01,  "Indicate buffer empty")
+asm               ( BEQ,  asm.EXIT_REM_BUFFER, "If E and F are equal, buffer is empty")
+
+asm               ( LDB, {F:Y}, "Load the byte from the buffer at offset F")
+asm               ( INCF,       "Increment the buffer output offset")
+asm               ( STF, {A:X}, "Store the buffer output offset from F")
+asm               ( ANDCC, 0xFE, "Success - Clear carry")
+asm .EXIT_REM_BUFFER ( RTS )
+
+
 asm .ACIA_RESET (   LDA,    0b00000011,     "Master reset ACIA"         )
 asm             (   STA,    {aciacr}                                    )
 asm             (   RTS                                                 )
@@ -70,11 +141,14 @@ asm .ACIA_MODE  (   LDA,    0b00001010,     "ACIA Operating mode -- 7e1 - div 64
 asm             (   STA,    {aciacr}                                                )
 asm             (   RTS                                                             )
 
-asm .RESET  (   LDMD,   0b00000001,     "Enter native 6309 mode"    )
-asm         (   LDS,    system_stack_base, "Setup system stack"         )
-asm         (   NOP,                    "Do nothing"                    )
-asm         (   JSR,    {asm.ACIA_RESET}, "Master reset ACIA"             )
-asm         (   JSR,    {asm.ACIA_MODE},  "Set ACIA mode"                 )
+
+asm .BOOT   (   LDMD,   0b00000001,        "Enter native 6309 mode"        )
+asm         (   LDS,    system_stack_base, "Setup system stack"            )
+asm         (   NOP,                       "Do nothing"                    )
+asm         (   NOP,                       "Do nothing"                    )
+asm         (   NOP,                       "Do nothing"                    )
+asm         (   JSR,    {asm.ACIA_RESET},  "Master reset ACIA"             )
+asm         (   JSR,    {asm.ACIA_MODE},   "Set ACIA mode"                 )
 
 asm .SEND   (   LDA,    0b00000010,     "Transmitter status flag"       )
 asm .WAITR  (   BITA,   {aciasr},       "Test flag"                     )
