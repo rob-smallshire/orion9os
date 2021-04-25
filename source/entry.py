@@ -62,6 +62,20 @@ aciadr = 0xA001
 
 asm         (   ORG,    0xC000,         "Bottom of the top 16 K ROM"    )
 
+asm .BEGIN  (   NOP,                    "Do nothing"                    )
+asm         (   NOP,                    "Do nothing"                    )
+asm         (   NOP,                    "Do nothing"                    )
+asm         (   LDA,    0b00000011,     "Master reset ACIA"             )
+asm         (   STA,    {aciacr}                                        )
+asm         (   LDA,    0b00001010,     "ACIA Operating mode -- 7e1 - div 64" )
+asm         (   STA,    {aciacr}                                        )
+asm .SEND1  (   LDA,    0b00000010,     "Transmitter status flag"       )
+asm .WAITR1 (   BITA,   {aciasr},       "Test flag"                     )
+asm         (   BEQ,    asm.WAITR1,      "Branch if flag not set"        )
+asm         (   LDA,    ord("h"),       "Load 'H' into A"               )
+asm         (   STA,    {aciadr},       "Transmit character"            )
+asm         (   JMP,    {asm.SEND1},     "Send another character"        )
+
 # This table gives the hi-byte (i.e page number) of each of the 256 byte buffers.
 asm .BUFFER_HI .SERIAL_RX_BUFFER_PAGE ( FCB, (serial_rx_buffer_page,) )
 asm            .SERIAL_TX_BUFFER_PAGE ( FCB, (serial_tx_buffer_page,) )
@@ -167,18 +181,18 @@ asm .FIRQ   (   RTI,                    "Return from interrupt")
 asm .IRQ    (   RTI,                    "Return from interrupt")
 asm .SWI    (   RTI,                    "Return from interrupt")
 asm .NMI    (   RTI,                    "Return from interrupt")
-asm .RESET  (   JMP,    {asm.BOOT},     "Boot!")
+asm .RESET  (   JMP,    {asm.BEGIN},     "Boot!")
 
 
 # Vector table at top of memory
-asm         (   ORG,    0xFFF0,         "Bottom of the top 16 K ROM"    )
-asm         (   FDB,   (asm.TRAP,   # TRAP (6309)
-                        asm.SWI3,   # SWI3
-                        asm.SWI2,   # SWI2
-                        asm.FIRQ,   # /FIRQ
-                        asm.IRQ,    # /IRQ
-                        asm.SWI,    # SWI
-                        asm.NMI,    # /NMI
+asm         (   ORG,    0xFFF0,         "Vector table at top of memory"    )
+asm         (   FDB,   (asm.BEGIN,  # TRAP (6309)
+                        asm.BEGIN,  # SWI3
+                        asm.BEGIN,  # SWI2
+                        asm.BEGIN,  # /FIRQ
+                        asm.BEGIN,  # /IRQ
+                        asm.BEGIN,  # SWI
+                        asm.BEGIN,  # /NMI
                         asm.RESET,  # /RESET
                         ))
 
